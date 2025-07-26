@@ -1,0 +1,30 @@
+#include <windows.h>
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION     0,1,0,0
+PRODUCTVERSION  0,1,0,0
+FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
+FILEFLAGS       0
+FILEOS          VOS_NT_WINDOWS32
+FILETYPE        VFT_APP
+FILESUBTYPE     VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904E4"
+        BEGIN
+            VALUE "CompanyName",      "Open Source Project"
+            VALUE "FileDescription", "Tencent ACE Guard Process Priority Manager"
+            VALUE "FileVersion",     "0.1.0.0"
+            VALUE "InternalName",    "tencent-ace-tools"
+            VALUE "LegalCopyright",  "Copyright (c) 2025 Open Source"
+            VALUE "OriginalFilename","tencent-ace-tools.exe"
+            VALUE "ProductName",     "Tencent ACE Tools"
+            VALUE "ProductVersion",  "0.1.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1252
+    END
+END

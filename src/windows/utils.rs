@@ -1,0 +1,170 @@
+use windows::{
+    core::*,
+    Win32::{
+        Foundation::*, Security::*, System::Threading::*, UI::WindowsAndMessaging::SHOW_WINDOW_CMD,
+    },
+};
+
+/// check if the program is running as admin
+pub fn is_running_as_admin() -> Result<bool> {
+    unsafe {
+        let mut token: HANDLE = HANDLE::default();
+
+        // get the access token of the current process
+        OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut token)?;
+
+        // check if the program is running as admin
+        let mut elevation = TOKEN_ELEVATION::default();
+        let mut size = 0u32;
+
+        GetTokenInformation(
+            token,
+            TokenElevation,
+            Some(&mut elevation as *mut _ as *mut _),
+            std::mem::size_of::<TOKEN_ELEVATION>() as u32,
+            &mut size,
+        )?;
+
+        CloseHandle(token).ok();
+
+        Ok(elevation.TokenIsElevated != 0)
+    }
+}
+
+/// request admin privileges (restart the program)
+pub fn request_admin_privileges() -> Result<()> {
+    unsafe {
+        // get the current executable file path
+        let current_exe = std::env::current_exe().map_err(|_| Error::from(E_FAIL))?;
+
+        let exe_path = current_exe.to_string_lossy();
+        let exe_path_wide: Vec<u16> = exe_path.encode_utf16().chain(std::iter::once(0)).collect();
+
+        // use ShellExecuteW to start the program with admin privileges
+        let result = windows::Win32::UI::Shell::ShellExecuteW(
+            None,
+            w!("runas"),
+            PCWSTR(exe_path_wide.as_ptr()),
+            None,
+            None,
+            SHOW_WINDOW_CMD(1), // SW_SHOWNORMAL
+        );
+
+        if result.0.is_null() || (result.0 as usize) <= 32 {
+            return Err(Error::from_win32());
+        }
+
+        // exit the current process after successfully starting the admin version
+        std::process::exit(0);
+    }
+}
+
+/// Get the full path of a process with fallback permissions
+pub fn get_process_path(process_id: u32) -> Result<String> {
+    unsafe {
+        // Try different permission levels in order of preference
+        let permissions = [PROCESS_QUERY_INFORMATION, PROCESS_QUERY_LIMITED_INFORMATION];
+
+        for &permission in &permissions {
+            if let Ok(handle) = OpenProcess(permission, false, process_id) {
+                let mut path_buffer = [0u16; 260]; // MAX_PATH
+                let mut size = path_buffer.len() as u32;
+
+                let result = QueryFullProcessImageNameW(
+                    handle,
+                    PROCESS_NAME_WIN32,
+                    PWSTR(path_buffer.as_mut_ptr()),
+                    &mut size,
+                );
+
+                CloseHandle(handle).ok();
+
+                if result.is_ok() && size > 0 {
+                    return Ok(String::from_utf16_lossy(&path_buffer[..size as usize]));
+                }
+            }
+        }
+
+        // If all methods fail, return an error
+        Err(Error::from(E_ACCESSDENIED))
+    }
+}
+
+/// Enable multiple privileges to access more processes
+pub fn enable_required_privileges() -> Result<()> {
+    let privileges = [
+        w!("SeDebugPrivilege"),
+        w!("SeIncreaseBasePriorityPrivilege"),
+        w!("SeSystemProfilePrivilege"),
+        w!("SeManageVolumePrivilege"),
+    ];
+
+    let mut success_count = 0;
+
+    for privilege_name in &privileges {
+        if enable_single_privilege(privilege_name).is_ok() {
+            success_count += 1;
+            tracing::info!("Successfully enabled privilege");
+        } else {
+            tracing::debug!("Failed to enable privilege");
+        }
+    }
+
+    if success_count > 0 {
+        tracing::info!(
+            "Enabled {} out of {} privileges",
+            success_count,
+            privileges.len()
+        );
+        Ok(())
+    } else {
+        tracing::warn!("Failed to enable any privileges");
+        Err(Error::from_hresult(HRESULT(0x80070005u32 as i32)))
+    }
+}
+
+/// Enable a single privilege
+pub fn enable_single_privilege(privilege_name: &PCWSTR) -> Result<()> {
+    unsafe {
+        let mut token_handle = HANDLE::default();
+
+        // Get current process token
+        if OpenProcessToken(
+            GetCurrentProcess(),
+            TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY,
+            &mut token_handle,
+        )
+        .is_err()
+        {
+            return Err(Error::from_hresult(HRESULT(0x80070005u32 as i32)));
+        }
+
+        // Lookup privilege
+        let mut luid = LUID::default();
+
+        if LookupPrivilegeValueW(PCWSTR::null(), *privilege_name, &mut luid).is_err() {
+            CloseHandle(token_handle).ok();
+            return Err(Error::from_hresult(HRESULT(0x80070005u32 as i32)));
+        }
+
+        // Set up the privilege structure
+        let mut tp = TOKEN_PRIVILEGES {
+            PrivilegeCount: 1,
+            Privileges: [LUID_AND_ATTRIBUTES {
+                Luid: luid,
+                Attributes: SE_PRIVILEGE_ENABLED,
+            }; 1],
+        };
+
+        // Adjust token privileges
+        let result = AdjustTokenPrivileges(token_handle, false, Some(&mut tp), 0, None, None);
+
+        CloseHandle(token_handle).ok();
+
+        if result.is_err() {
+            return Err(Error::from_hresult(HRESULT(0x80070005u32 as i32)));
+        }
+
+        Ok(())
+    }
+}
