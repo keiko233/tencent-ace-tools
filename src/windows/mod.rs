@@ -10,9 +10,33 @@ mod utils;
 use utils::*;
 
 pub async fn run() -> Result<()> {
-    tracing_subscriber::fmt()
-        .with_max_level(Level::TRACE)
-        .init();
+    // check if the program is running in a terminal environment
+    let is_terminal = atty::is(atty::Stream::Stdout);
+    let is_windows_terminal = std::env::var("WT_SESSION").is_ok();
+
+    // Configure tracing subscriber
+    let subscriber = tracing_subscriber::fmt()
+        .with_max_level(if cfg!(debug_assertions) {
+            Level::TRACE
+        } else {
+            Level::INFO
+        })
+        .with_target(false)
+        .with_thread_ids(false)
+        .with_file(false)
+        .with_line_number(false);
+
+    // Configure colors based on terminal type
+    if is_terminal && (is_windows_terminal || console::colors_enabled()) {
+        // Windows Terminal or a terminal that supports colors
+        subscriber.with_ansi(true).init();
+    } else {
+        // CMD or a terminal that does not support colors
+        subscriber.with_ansi(false).init();
+    }
+
+    // Show terminal information
+    detect_terminal_environment();
 
     info!("==========================================");
     info!("  Tencent ACE Tools v{}", env!("CARGO_PKG_VERSION"));
@@ -59,6 +83,7 @@ pub async fn run() -> Result<()> {
     info!("==========================================");
     info!("Operation completed. Press any key to exit...");
     info!("==========================================");
+
     std::io::stdin().read_line(&mut String::new()).ok();
 
     Ok(())

@@ -5,6 +5,20 @@ use windows::{
     },
 };
 
+/// check if the program is running in a terminal environment
+pub fn detect_terminal_environment() {
+    let is_windows_terminal = std::env::var("WT_SESSION").is_ok();
+    let is_vscode_terminal = std::env::var("VSCODE_INJECTION").is_ok();
+    
+    if is_windows_terminal {
+        tracing::debug!("Running in Windows Terminal");
+    } else if is_vscode_terminal {
+        tracing::debug!("Running in VS Code Terminal");
+    } else {
+        tracing::debug!("Running in standard terminal (likely CMD)");
+    }
+}
+
 /// check if the program is running as admin
 pub fn is_running_as_admin() -> Result<bool> {
     unsafe {
