@@ -1,3 +1,5 @@
+#![cfg_attr(windows, windows_subsystem = "windows")]
+
 use chrono::{DateTime, Local};
 use clap::{Parser, Subcommand};
 use iced::{
