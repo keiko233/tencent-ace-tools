@@ -1,4 +1,4 @@
-#![cfg_attr(windows, windows_subsystem = "windows")]
+#![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 
 use chrono::{DateTime, Local};
 use iced::{
@@ -297,17 +297,38 @@ fn main() -> iced::Result {
 }
 
 fn run_gui_mode() -> iced::Result {
-    // Initialize tracing for GUI mode with iced logging disabled
-    let env_filter = tracing_subscriber::EnvFilter::from_default_env()
-        .add_directive("iced=error".parse().unwrap())
-        .add_directive("wgpu=error".parse().unwrap())
-        .add_directive("tracing=error".parse().unwrap());
+    // Initialize tracing for GUI mode
+    #[cfg(debug_assertions)]
+    {
+        // Debug mode: show all logs to console
+        let env_filter = tracing_subscriber::EnvFilter::from_default_env()
+            .add_directive("tencent_ace_tools=debug".parse().unwrap())
+            .add_directive("iced=warn".parse().unwrap())
+            .add_directive("wgpu=warn".parse().unwrap());
 
-    tracing_subscriber::fmt()
-        .with_env_filter(env_filter)
-        .with_target(true)
-        .init();
+        tracing_subscriber::fmt()
+            .with_env_filter(env_filter)
+            .with_target(true)
+            .init();
+    }
+    
+    #[cfg(not(debug_assertions))]
+    {
+        // Release mode: minimal logging for GUI
+        let env_filter = tracing_subscriber::EnvFilter::from_default_env()
+            .add_directive("iced=error".parse().unwrap())
+            .add_directive("wgpu=error".parse().unwrap())
+            .add_directive("tracing=error".parse().unwrap());
 
+        tracing_subscriber::fmt()
+            .with_env_filter(env_filter)
+            .with_target(true)
+            .init();
+    }
+
+    #[cfg(debug_assertions)]
+    tracing::info!("Starting Tencent ACE Tools in debug mode");
+    
     iced::application(AceToolsApp::title, AceToolsApp::update, AceToolsApp::view)
         .theme(AceToolsApp::theme)
         .window_size((800.0, 600.0))

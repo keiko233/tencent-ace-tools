@@ -12,8 +12,10 @@ use utils::*;
 // Re-export the function for public access
 pub use utils::is_running_as_admin;
 
-pub async fn run_optimization() -> anyhow::Result<(String, Vec<ProcessInfo>)> {
-    let mut controller = ProcessController::new()?;
+pub async fn run_optimization() -> std::result::Result<(String, Vec<ProcessInfo>), String> {
+    let mut controller = ProcessController::new()
+        .map_err(|e| format!("Failed to create process controller: {}", e))?;
+
     let result = controller.optimize_ace_guard_processes().await?;
     let processes = controller.get_processes().to_vec();
     Ok((result, processes))
@@ -53,13 +55,14 @@ impl ProcessController {
         })
     }
 
-    pub async fn optimize_ace_guard_processes(&mut self) -> anyhow::Result<String> {
+    pub async fn optimize_ace_guard_processes(&mut self) -> std::result::Result<String, String> {
         info!("Starting system process scan...");
 
-        self.scan_processes()?;
+        self.scan_processes()
+            .map_err(|e| format!("Failed to scan processes: {}", e))?;
 
         if self.processes.is_empty() {
-            return Ok("No ACE Guard processes found on the system. This is normal if no Tencent games are currently running.".to_string());
+            return Err("No ACE Guard processes found on the system. This is normal if no Tencent games are currently running.".to_string());
         }
 
         let mut modified_count = 0;
@@ -77,7 +80,7 @@ impl ProcessController {
         );
 
         if modified_count == 0 {
-            return Err(anyhow::anyhow!("No processes were successfully modified. This may be due to insufficient permissions or process protection."));
+            return Err("No processes were successfully modified. This may be due to insufficient permissions or process protection.".to_string());
         } else if modified_count < processes_len {
             warn!("Some processes could not be modified");
         } else {
@@ -114,8 +117,10 @@ impl ProcessController {
                         info!("  PID: {}", process_entry.th32ProcessID);
                         info!("  Path: {}", process_path);
 
-                        let (current_priority, current_affinity) = utils::get_process_status(process_entry.th32ProcessID)
-                            .unwrap_or_else(|_| ("Access Denied".to_string(), "Access Denied".to_string()));
+                        let (current_priority, current_affinity) =
+                            utils::get_process_status(process_entry.th32ProcessID).unwrap_or_else(
+                                |_| ("Access Denied".to_string(), "Access Denied".to_string()),
+                            );
 
                         self.processes.push(ProcessInfo {
                             process_id: process_entry.th32ProcessID,
