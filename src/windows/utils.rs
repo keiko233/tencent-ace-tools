@@ -5,20 +5,6 @@ use windows::{
     },
 };
 
-/// check if the program is running in a terminal environment
-pub fn detect_terminal_environment() {
-    let is_windows_terminal = std::env::var("WT_SESSION").is_ok();
-    let is_vscode_terminal = std::env::var("VSCODE_INJECTION").is_ok();
-    
-    if is_windows_terminal {
-        tracing::debug!("Running in Windows Terminal");
-    } else if is_vscode_terminal {
-        tracing::debug!("Running in VS Code Terminal");
-    } else {
-        tracing::debug!("Running in standard terminal (likely CMD)");
-    }
-}
-
 /// check if the program is running as admin
 pub fn is_running_as_admin() -> Result<bool> {
     unsafe {
@@ -152,4 +138,83 @@ pub fn enable_single_privilege(privilege_name: &PCWSTR) -> Result<()> {
 
         Ok(())
     }
+}
+
+/// Get current process priority class
+pub fn get_process_priority(process_id: u32) -> Result<String> {
+    unsafe {
+        let permissions = [PROCESS_QUERY_INFORMATION, PROCESS_QUERY_LIMITED_INFORMATION];
+
+        for &permission in &permissions {
+            if let Ok(handle) = OpenProcess(permission, false, process_id) {
+                let priority = GetPriorityClass(handle);
+                CloseHandle(handle).ok();
+
+                if priority != 0 {
+                    let priority_class = match priority {
+                        0x40 => "IDLE",
+                        0x4000 => "BELOW_NORMAL", 
+                        0x20 => "NORMAL",
+                        0x8000 => "ABOVE_NORMAL",
+                        0x80 => "HIGH",
+                        0x100 => "REALTIME",
+                        _ => "UNKNOWN",
+                    };
+                    return Ok(priority_class.to_string());
+                }
+            }
+        }
+
+        Err(Error::from(E_ACCESSDENIED))
+    }
+}
+
+/// Get current process CPU affinity
+pub fn get_process_affinity(process_id: u32) -> Result<String> {
+    unsafe {
+        let permissions = [PROCESS_QUERY_INFORMATION, PROCESS_QUERY_LIMITED_INFORMATION];
+
+        for &permission in &permissions {
+            if let Ok(handle) = OpenProcess(permission, false, process_id) {
+                let mut process_affinity_mask = 0_usize;
+                let mut system_affinity_mask = 0_usize;
+
+                let result = GetProcessAffinityMask(
+                    handle,
+                    &mut process_affinity_mask,
+                    &mut system_affinity_mask,
+                );
+
+                CloseHandle(handle).ok();
+
+                if result.is_ok() {
+                    // Find which cores are set
+                    let mut cores = Vec::new();
+                    for i in 0..64 {
+                        if (process_affinity_mask & (1 << i)) != 0 {
+                            cores.push(i);
+                        }
+                    }
+
+                    if cores.is_empty() {
+                        return Ok("No cores assigned".to_string());
+                    } else if cores.len() == 1 {
+                        return Ok(format!("Core {}", cores[0]));
+                    } else {
+                        return Ok(format!("Cores: {}", cores.iter().map(|c| c.to_string()).collect::<Vec<_>>().join(", ")));
+                    }
+                }
+            }
+        }
+
+        Err(Error::from(E_ACCESSDENIED))
+    }
+}
+
+/// Get process status information including priority and affinity
+pub fn get_process_status(process_id: u32) -> Result<(String, String)> {
+    let priority = get_process_priority(process_id).unwrap_or_else(|_| "Access Denied".to_string());
+    let affinity = get_process_affinity(process_id).unwrap_or_else(|_| "Access Denied".to_string());
+    
+    Ok((priority, affinity))
 }

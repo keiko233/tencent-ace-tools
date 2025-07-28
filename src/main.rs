@@ -1,42 +1,18 @@
 #![cfg_attr(windows, windows_subsystem = "windows")]
 
 use chrono::{DateTime, Local};
-use clap::{Parser, Subcommand};
 use iced::{
-    widget::{button, column, container, scrollable, text, Space},
+    widget::{button, column, container, scrollable, text, Space, row},
     Element, Length, Padding, Task, Theme,
 };
 use std::sync::{Arc, Mutex};
 
-use crate::constants::{COLOR_GREEN, COLOR_RED};
+use crate::constants::{COLOR_BLUE, COLOR_GREEN, COLOR_RED};
 
 mod constants;
 
 #[cfg(target_os = "windows")]
 mod windows;
-
-#[derive(Parser)]
-#[command(name = "tencent-ace-tools")]
-#[command(
-    about = "A Windows utility to optimize Tencent ACE Guard process for better gaming performance"
-)]
-#[command(version)]
-struct Cli {
-    #[command(subcommand)]
-    command: Option<Commands>,
-}
-
-#[derive(Subcommand)]
-enum Commands {
-    /// Run in debug mode with detailed console output
-    Cli {
-        /// Enable verbose debug logging
-        #[arg(short, long)]
-        verbose: bool,
-    },
-    /// Run the GUI version (default)
-    Gui,
-}
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -57,6 +33,7 @@ pub struct AceToolsApp {
     optimization_result: Option<Result<String, String>>,
     logs: Arc<Mutex<Vec<LogEntry>>>,
     is_admin: bool,
+    process_info: Arc<Mutex<Vec<windows::ProcessInfo>>>,
 }
 
 impl AceToolsApp {
@@ -69,6 +46,7 @@ impl AceToolsApp {
                 optimization_result: None,
                 logs: Arc::new(Mutex::new(Vec::new())),
                 is_admin,
+                process_info: Arc::new(Mutex::new(Vec::new())),
             },
             Task::none(),
         )
@@ -91,8 +69,9 @@ impl AceToolsApp {
                 self.add_log("INFO", "Starting ACE Guard optimization...");
 
                 let logs_clone = Arc::clone(&self.logs);
+                let process_info_clone = Arc::clone(&self.process_info);
                 Task::perform(
-                    async move { run_optimization(logs_clone).await },
+                    async move { run_optimization(logs_clone, process_info_clone).await },
                     Message::OptimizationCompleted,
                 )
             }
@@ -171,6 +150,41 @@ impl AceToolsApp {
         .padding(5)
         .width(Length::Fill);
 
+        // Process status section
+        let process_status_section: Element<Message> = if let Ok(processes) = self.process_info.lock() {
+            if processes.is_empty() {
+                text("No ACE Guard processes found").size(14).color(COLOR_RED).into()
+            } else {
+                let process_views: Vec<Element<Message>> = processes.iter().map(|process| {
+                    let status_text = format!(
+                        "PID: {} | Priority: {} | Affinity: {} | Modified: {}{}",
+                        process.process_id,
+                        process.current_priority,
+                        process.current_affinity,
+                        if process.priority_modified || process.affinity_modified { "✓" } else { "✗" },
+                        if process.priority_modified && process.affinity_modified { " (Both)" } 
+                        else if process.priority_modified { " (Priority)" }
+                        else if process.affinity_modified { " (Affinity)" }
+                        else { "" }
+                    );
+                    
+                    text(status_text)
+                        .size(12)
+                        .font(iced::Font::with_name("monospace"))
+                        .color(if process.priority_modified || process.affinity_modified { COLOR_GREEN } else { COLOR_RED })
+                        .into()
+                }).collect();
+
+                column![
+                    text("ACE Guard Process Status:").size(16),
+                    Space::with_height(Length::Fixed(5.0)),
+                    column(process_views).spacing(2)
+                ].into()
+            }
+        } else {
+            text("Unable to load process information").size(14).color(COLOR_RED).into()
+        };
+
         let info_text = text(
             "This tool optimizes Tencent ACE Guard processes by:\n\
             • Lowering process priority to IDLE level\n\
@@ -189,6 +203,8 @@ impl AceToolsApp {
             Space::with_height(Length::Fixed(20.0)),
             buttons_row,
             Space::with_height(Length::Fixed(20.0)),
+            process_status_section,
+            Space::with_height(Length::Fixed(15.0)),
             text("Logs:").size(16),
             Space::with_height(Length::Fixed(5.0)),
             logs_section,
@@ -223,7 +239,10 @@ impl AceToolsApp {
     }
 }
 
-async fn run_optimization(logs: Arc<Mutex<Vec<LogEntry>>>) -> Result<String, String> {
+async fn run_optimization(
+    logs: Arc<Mutex<Vec<LogEntry>>>,
+    process_info: Arc<Mutex<Vec<windows::ProcessInfo>>>,
+) -> Result<String, String> {
     let add_log = |level: &str, message: &str| {
         if let Ok(mut logs_guard) = logs.lock() {
             logs_guard.push(LogEntry {
@@ -237,8 +256,11 @@ async fn run_optimization(logs: Arc<Mutex<Vec<LogEntry>>>) -> Result<String, Str
     #[cfg(target_os = "windows")]
     {
         match windows::run_optimization().await {
-            Ok(result) => {
+            Ok((result, processes)) => {
                 add_log("SUCCESS", &result);
+                if let Ok(mut process_info_guard) = process_info.lock() {
+                    *process_info_guard = processes;
+                }
                 Ok(result)
             }
             Err(e) => {
@@ -271,71 +293,7 @@ fn check_admin_privileges() -> bool {
 }
 
 fn main() -> iced::Result {
-    let cli = Cli::parse();
-
-    match cli.command {
-        Some(Commands::Cli { verbose }) => {
-            // Run in CLI debug mode
-            run_cli_mode(verbose);
-            Ok(())
-        }
-        Some(Commands::Gui) | None => {
-            // Run GUI mode (default)
-            run_gui_mode()
-        }
-    }
-}
-
-fn run_cli_mode(verbose: bool) {
-    // Try to initialize tracing for debug mode with more detailed output
-    let level = if verbose {
-        tracing::Level::TRACE
-    } else if cfg!(debug_assertions) {
-        tracing::Level::DEBUG
-    } else {
-        tracing::Level::INFO
-    };
-
-    // Use try_init to avoid conflicts if subscriber is already initialized
-    let _ = tracing_subscriber::fmt()
-        .with_max_level(level)
-        .with_target(true)
-        .with_thread_ids(true)
-        .with_file(true)
-        .with_line_number(true)
-        .try_init();
-
-    println!("==========================================");
-    println!("        CLI RUN MODE ACTIVATED");
-    println!("==========================================");
-    println!("Tencent ACE Tools v{}", env!("CARGO_PKG_VERSION"));
-    println!("Running in CLI mode with enhanced logging");
-    if verbose {
-        println!("Verbose logging enabled (TRACE level)");
-    }
-    println!("==========================================");
-
-    // Create a Tokio runtime for async operations
-    let rt = tokio::runtime::Runtime::new().unwrap();
-
-    #[cfg(target_os = "windows")]
-    {
-        match rt.block_on(windows::run_cli(verbose)) {
-            Ok(_) => {
-                println!("CLI run completed successfully");
-            }
-            Err(e) => {
-                eprintln!("CLI run failed: {}", e);
-                std::process::exit(1);
-            }
-        }
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    {
-        eprintln!("CLI run is only supported on Windows");
-        std::process::exit(1);
-    }
+    run_gui_mode()
 }
 
 fn run_gui_mode() -> iced::Result {

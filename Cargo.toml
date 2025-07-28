@@ -20,7 +20,6 @@ atty = "0.2"
 iced = { version = "0.13", features = ["tokio"] }
 chrono = "0.4"
 num_cpus = "1.0"
-clap = { version = "4.5", features = ["derive"] }
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.61.3", features = [
