@@ -39,45 +39,89 @@ pub async fn run() -> Result<()> {
     detect_terminal_environment();
 
     info!("==========================================");
-    info!("  Tencent ACE Tools v{}", env!("CARGO_PKG_VERSION"));
-    info!("  Gaming Performance Optimizer");
+    info!("  Tencent ACE Gaming Performance Optimizer v{}", env!("CARGO_PKG_VERSION"));
+    info!("  Open Source Gaming Performance Tool");
     info!("==========================================");
     info!("Description: {}", env!("CARGO_PKG_DESCRIPTION"));
     info!("Repository: {}", env!("CARGO_PKG_REPOSITORY"));
     info!("");
-    info!("This is an OPEN SOURCE tool that helps optimize gaming");
-    info!("performance by managing ACE Guard process priority.");
-    info!("What this tool does:");
-    info!("✓ Finds Tencent ACE Guard processes");
+    info!("This is an open source gaming performance optimization tool that legally optimizes anti-cheat process priority:");
+    info!("✓ Finds Tencent ACE Guard anti-cheat processes (SGuard64.exe)");
     info!("✓ Lowers their priority to IDLE level");
     info!("✓ Limits them to use only the last CPU core");
-    info!("✓ Improves gaming performance");
+    info!("✓ Improves gaming performance and reduces stuttering");
     info!("");
-    info!("What this tool does NOT do:");
-    info!("✗ Does not modify game files");
-    info!("✗ Does not disable anti-cheat");
-    info!("✗ Does not inject code into processes");
-    info!("✗ Does not bypass security measures");
+    info!("This tool will NEVER:");
+    info!("✗ Modify game files or inject code");
+    info!("✗ Disable or bypass anti-cheat systems");
+    info!("✗ Affect game security or account safety");
+    info!("✗ Perform any malicious operations");
+    info!("");
+    info!("This is an OPEN SOURCE gaming optimization tool that:");
+    info!("✓ Finds Tencent ACE Guard anti-cheat processes");
+    info!("✓ Lowers their priority to IDLE level");
+    info!("✓ Limits them to use only the last CPU core");  
+    info!("✓ Improves gaming performance without compromising security");
     info!("==========================================");
 
     if is_running_as_admin()? {
         info!("✓ Program is running with administrator privileges");
-        info!("Starting ACE Guard optimization process...");
+        
+        // Add user confirmation for safety
+        info!("");
+        info!("⚠️  Safety Confirmation");
+        info!("==========================================");
+        info!("This program will modify system process priority and CPU affinity.");
+        info!("This is a completely safe and reversible operation.");
+        info!("Enter 'y' or 'yes' to continue, any other input will exit the program.");
+        info!("==========================================");
+        
+        print!("Continue? (y/n): ");
+        std::io::Write::flush(&mut std::io::stdout()).ok();
+        
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input).ok();
+        let input = input.trim().to_lowercase();
+        
+        if input != "y" && input != "yes" {
+            info!("Operation cancelled by user");
+            info!("Exiting program");
+            std::process::exit(0);
+        }
+        
+        info!("User confirmed to continue");
+        info!("Starting ACE Guard optimization...");
+        
+        info!("");
+        info!("Performing the following operations:");
+        info!("1. Scanning system for ACE Guard processes");
+        info!("2. Attempting to lower process priority to IDLE level");
+        info!("3. Setting CPU affinity to the last core");
+        info!("4. These operations are completely legal and safe");
+        info!("");
 
         limit_ace_guard_64_priority()?;
     } else {
-        warn!("✗ Administrator privileges required");
-        info!("This program needs administrator privileges to modify process priorities.");
-        info!("Attempting to restart with administrator privileges...");
-
-        // try to request admin privileges
-        match request_admin_privileges() {
-            Ok(_) => {}
-            Err(e) => {
-                error!("Failed to restart with admin privileges: {:?}", e);
-                info!("Please right-click the program and select 'Run as administrator'");
-            }
-        }
+        warn!("✗ Administrator privileges required to modify process priorities");
+        info!("");
+        info!("==========================================");
+        info!("           IMPORTANT NOTICE");
+        info!("==========================================");
+        info!("This program requires administrator privileges to modify system process priorities.");
+        info!("This is a normal Windows security requirement.");
+        info!("");
+        info!("Please follow these steps:");
+        info!("1. Close this program");
+        info!("2. Right-click on the program icon");
+        info!("3. Select 'Run as administrator'");
+        info!("4. Click 'Yes' in the UAC prompt");
+        info!("==========================================");
+        info!("");
+        info!("Program will exit in 10 seconds...");
+        
+        // Wait for 10 seconds before exiting
+        tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
+        std::process::exit(1);
     }
 
     info!("==========================================");
@@ -91,11 +135,18 @@ pub async fn run() -> Result<()> {
 
 /// limit the priority of ACE Guard 64 processes
 fn limit_ace_guard_64_priority() -> Result<()> {
+    info!("Starting system process scan...");
+    
     // Try to enable multiple privileges first
     if let Err(e) = enable_required_privileges() {
-        warn!("Failed to enable required privileges: {:?}", e);
-        info!("Continuing without enhanced privileges, some processes may be inaccessible");
+        warn!("Failed to enable enhanced privileges, some protected processes may be inaccessible: {:?}", e);
+        info!("Continuing with basic privileges");
+    } else {
+        info!("✓ Enhanced privileges enabled successfully");
     }
+
+    let mut found_processes = 0;
+    let mut modified_processes = 0;
 
     unsafe {
         // Create a snapshot of the process
@@ -106,10 +157,7 @@ fn limit_ace_guard_64_priority() -> Result<()> {
             ..Default::default()
         };
 
-        debug!(
-            "Starting ACE Guard priority limitation, snapshot handle: {:?}",
-            snapshot
-        );
+        info!("Enumerating system processes...");
 
         // Iterate over all processes
         if Process32FirstW(snapshot, &mut process_entry).is_ok() {
@@ -118,23 +166,18 @@ fn limit_ace_guard_64_priority() -> Result<()> {
                 let process_name_raw = String::from_utf16_lossy(&process_entry.szExeFile);
                 let process_name = process_name_raw.trim_end_matches('\0');
 
-                // Get the process path with fallback permissions
-                let process_path = get_process_path(process_entry.th32ProcessID)
-                    .unwrap_or_else(|_| "Access Denied".to_string());
-
-                // trace!(
-                //     "Checking process: {} (PID: {}), path: {}",
-                //     process_name,
-                //     process_entry.th32ProcessID,
-                //     process_path
-                // );
-
                 // Check if it is an ACE Guard 64 process
                 if process_name.eq(constants::ACE_GUARD_64_PROCESS_NAME) {
-                    debug!(
-                        "Found ACE Guard process: {} (PID: {}), path: {})",
-                        process_name, process_entry.th32ProcessID, process_path
-                    );
+                    found_processes += 1;
+                    
+                    // Get the process path with fallback permissions
+                    let process_path = get_process_path(process_entry.th32ProcessID)
+                        .unwrap_or_else(|_| "Access Denied".to_string());
+
+                    info!("Found ACE Guard process:");
+                    info!("  Name: {}", process_name);
+                    info!("  PID: {}", process_entry.th32ProcessID);
+                    info!("  Path: {}", process_path);
 
                     // Try different permission levels to open the process
                     let permissions = [
@@ -156,10 +199,7 @@ fn limit_ace_guard_64_priority() -> Result<()> {
                                 break;
                             }
                             Err(e) => {
-                                debug!(
-                                    "Permission level {} failed for process {}: {:?}",
-                                    i, process_name, e
-                                );
+                                debug!("Permission level {} failed: {:?}", i, e);
                                 continue;
                             }
                         }
@@ -167,67 +207,60 @@ fn limit_ace_guard_64_priority() -> Result<()> {
 
                     match process_handle {
                         Some(handle) => {
-                            debug!(
-                                "Successfully opened process {} with permission level {}",
-                                process_name, used_permission
-                            );
+                            info!("  ✓ Successfully opened process handle (permission level: {})", used_permission);
+
+                            let mut operation_success = false;
 
                             // set process priority to idle
+                            info!("  Setting process priority to IDLE...");
                             let priority_result = SetPriorityClass(handle, IDLE_PRIORITY_CLASS);
 
                             if priority_result.is_ok() {
-                                info!(
-                                    "Successfully lowered priority for process: {}",
-                                    process_name
-                                );
+                                info!("  ✓ Successfully lowered process priority");
+                                operation_success = true;
                             } else {
-                                warn!(
-                                    "Failed to lower priority for process: {} (Error: {:?})",
-                                    process_name,
-                                    priority_result.err()
-                                );
+                                warn!("  ✗ Failed to set priority: {:?}", priority_result.err());
                             }
 
                             // Set CPU affinity to the last CPU core
+                            info!("  Setting CPU affinity...");
+                            
                             // Get the number of processors using std::thread
                             let num_processors = std::thread::available_parallelism()
                                 .map(|n| n.get())
                                 .unwrap_or(1);
 
+                            info!("  Detected {} CPU cores", num_processors);
+
                             // Create affinity mask for the last CPU (bit position = num_processors - 1)
                             let last_cpu_mask = 1usize << (num_processors - 1);
+                            info!("  Limiting process to CPU core {}", num_processors - 1);
 
                             let affinity_result = SetProcessAffinityMask(handle, last_cpu_mask);
 
                             if affinity_result.is_ok() {
-                                info!(
-                                    "Successfully set CPU affinity to last core (CPU {}) for process: {}",
-                                    num_processors - 1, process_name
-                                );
+                                info!("  ✓ Successfully set CPU affinity");
+                                operation_success = true;
                             } else {
-                                warn!(
-                                    "Failed to set CPU affinity for process: {} (Error: {:?})",
-                                    process_name,
-                                    affinity_result.err()
-                                );
+                                warn!("  ✗ Failed to set CPU affinity: {:?}", affinity_result.err());
+                            }
+
+                            if operation_success {
+                                modified_processes += 1;
+                                info!("  ✓ Process optimization completed");
+                            } else {
+                                warn!("  ✗ Process optimization failed");
                             }
 
                             CloseHandle(handle).ok();
                         }
                         None => {
-                            // Only show debug information for access denied errors
-                            // as these are common for protected processes
-                            debug!(
-                                "Failed to open process {} (PID: {}) with any permission level",
-                                process_name, process_entry.th32ProcessID
-                            );
-                            info!(
-                                "Skipping process {} (PID: {}) - access denied or protected process",
-                                process_name,
-                                process_entry.th32ProcessID
-                            );
+                            warn!("  ✗ Cannot open process handle - may be protected process");
+                            info!("  This is usually normal, some system processes are protected");
                         }
                     }
+                    
+                    info!(""); // Add blank line for readability
                 }
 
                 // get next process
@@ -239,7 +272,19 @@ fn limit_ace_guard_64_priority() -> Result<()> {
 
         CloseHandle(snapshot).ok();
 
-        tracing::info!("ACE Guard priority limitation completed");
+        info!("==========================================");
+        info!("Scan Results Summary:");
+        info!("Found ACE Guard processes: {}", found_processes);
+        info!("Successfully optimized processes: {}", modified_processes);
+        
+        if found_processes == 0 {
+            info!("No ACE Guard processes found, may not be running Tencent games currently");
+        } else if modified_processes > 0 {
+            info!("✓ Gaming performance optimization completed!");
+            info!("ACE Guard process priority lowered, CPU usage limited");
+        }
+        info!("==========================================");
+
         Ok(())
     }
 }

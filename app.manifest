@@ -6,11 +6,11 @@
     name="TencentAceTools"
     type="win32"
   />
-  <description>Tencent ACE Tools</description>
+  <description>Tencent ACE Gaming Performance Optimizer - A legitimate tool to improve gaming performance by optimizing anti-cheat process priority</description>
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v2">
     <security>
       <requestedPrivileges xmlns="urn:schemas-microsoft-com:asm.v3">
-        <requestedExecutionLevel level="requireAdministrator" uiAccess="false" />
+        <requestedExecutionLevel level="asInvoker" uiAccess="false" />
       </requestedPrivileges>
     </security>
   </trustInfo>

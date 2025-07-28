@@ -1,7 +1,7 @@
 use windows::{
     core::*,
     Win32::{
-        Foundation::*, Security::*, System::Threading::*, UI::WindowsAndMessaging::SHOW_WINDOW_CMD,
+        Foundation::*, Security::*, System::Threading::*,
     },
 };
 
@@ -45,34 +45,6 @@ pub fn is_running_as_admin() -> Result<bool> {
     }
 }
 
-/// request admin privileges (restart the program)
-pub fn request_admin_privileges() -> Result<()> {
-    unsafe {
-        // get the current executable file path
-        let current_exe = std::env::current_exe().map_err(|_| Error::from(E_FAIL))?;
-
-        let exe_path = current_exe.to_string_lossy();
-        let exe_path_wide: Vec<u16> = exe_path.encode_utf16().chain(std::iter::once(0)).collect();
-
-        // use ShellExecuteW to start the program with admin privileges
-        let result = windows::Win32::UI::Shell::ShellExecuteW(
-            None,
-            w!("runas"),
-            PCWSTR(exe_path_wide.as_ptr()),
-            None,
-            None,
-            SHOW_WINDOW_CMD(1), // SW_SHOWNORMAL
-        );
-
-        if result.0.is_null() || (result.0 as usize) <= 32 {
-            return Err(Error::from_win32());
-        }
-
-        // exit the current process after successfully starting the admin version
-        std::process::exit(0);
-    }
-}
-
 /// Get the full path of a process with fallback permissions
 pub fn get_process_path(process_id: u32) -> Result<String> {
     unsafe {
@@ -104,13 +76,12 @@ pub fn get_process_path(process_id: u32) -> Result<String> {
     }
 }
 
-/// Enable multiple privileges to access more processes
+/// Enable required privileges to access and modify processes - only what we actually need
 pub fn enable_required_privileges() -> Result<()> {
+    // Only request privileges that are actually needed for process management
     let privileges = [
-        w!("SeDebugPrivilege"),
-        w!("SeIncreaseBasePriorityPrivilege"),
-        w!("SeSystemProfilePrivilege"),
-        w!("SeManageVolumePrivilege"),
+        w!("SeDebugPrivilege"),                    // To access protected processes
+        w!("SeIncreaseBasePriorityPrivilege"),     // To lower process priority
     ];
 
     let mut success_count = 0;
@@ -118,15 +89,15 @@ pub fn enable_required_privileges() -> Result<()> {
     for privilege_name in &privileges {
         if enable_single_privilege(privilege_name).is_ok() {
             success_count += 1;
-            tracing::info!("Successfully enabled privilege");
+            tracing::debug!("Successfully enabled privilege: {:?}", privilege_name);
         } else {
-            tracing::debug!("Failed to enable privilege");
+            tracing::debug!("Failed to enable privilege: {:?}", privilege_name);
         }
     }
 
     if success_count > 0 {
         tracing::info!(
-            "Enabled {} out of {} privileges",
+            "Enabled {}/{} privileges",
             success_count,
             privileges.len()
         );
