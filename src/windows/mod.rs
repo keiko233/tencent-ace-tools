@@ -12,7 +12,7 @@ use utils::*;
 pub mod screen;
 
 // Re-export the function for public access
-pub use utils::is_running_as_admin;
+pub use utils::{is_running_as_admin, find_process_by_name};
 
 pub async fn run_optimization() -> std::result::Result<(String, Vec<ProcessInfo>), String> {
     let mut controller = ProcessController::new()

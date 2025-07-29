@@ -95,7 +95,7 @@ impl WindowScreenshot {
                 bmiHeader: BITMAPINFOHEADER {
                     biSize: mem::size_of::<BITMAPINFOHEADER>() as u32,
                     biWidth: width,
-                    biHeight: height, // Positive for bottom-up bitmap (correct orientation)
+                    biHeight: -height, // Negative for top-down bitmap (correct orientation)
                     biPlanes: 1,
                     biBitCount: 32, // 32-bit RGBA
                     biCompression: BI_RGB.0,
@@ -197,7 +197,7 @@ impl WindowScreenshot {
                 bmiHeader: BITMAPINFOHEADER {
                     biSize: mem::size_of::<BITMAPINFOHEADER>() as u32,
                     biWidth: screen_width,
-                    biHeight: screen_height, // Positive for bottom-up bitmap (correct orientation)
+                    biHeight: -screen_height, // Negative for top-down bitmap (correct orientation)
                     biPlanes: 1,
                     biBitCount: 32, // 32-bit RGBA
                     biCompression: BI_RGB.0,

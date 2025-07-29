@@ -218,3 +218,47 @@ pub fn get_process_status(process_id: u32) -> Result<(String, String)> {
     
     Ok((priority, affinity))
 }
+
+/// Find processes by name and return their process IDs
+pub fn find_process_by_name(process_name: &str) -> Result<Vec<u32>> {
+    use windows::Win32::System::Diagnostics::ToolHelp::{
+        CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W, TH32CS_SNAPPROCESS,
+    };
+
+    unsafe {
+        let mut process_ids = Vec::new();
+        
+        let snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)?;
+        if snapshot.is_invalid() {
+            return Err(Error::from_win32());
+        }
+
+        let mut process_entry = PROCESSENTRY32W {
+            dwSize: std::mem::size_of::<PROCESSENTRY32W>() as u32,
+            ..Default::default()
+        };
+
+        if Process32FirstW(snapshot, &mut process_entry).is_ok() {
+            loop {
+                let current_process_name_raw = String::from_utf16_lossy(&process_entry.szExeFile);
+                let current_process_name = current_process_name_raw.trim_end_matches('\0');
+
+                if current_process_name.eq_ignore_ascii_case(process_name) {
+                    process_ids.push(process_entry.th32ProcessID);
+                }
+
+                if Process32NextW(snapshot, &mut process_entry).is_err() {
+                    break;
+                }
+            }
+        }
+
+        CloseHandle(snapshot).ok();
+        
+        if process_ids.is_empty() {
+            Err(Error::from_hresult(windows::core::HRESULT(-1)))
+        } else {
+            Ok(process_ids)
+        }
+    }
+}
