@@ -6,23 +6,33 @@ use std::sync::{Arc, Mutex};
 
 use crate::constants::{COLOR_BLUE, COLOR_GREEN, COLOR_ORANGE, COLOR_RED};
 use crate::messages::{LogEvent, Message, ScreenshotData};
+use crate::ui::theme::{get_header_font, get_monospace_font};
 
 #[cfg(target_os = "windows")]
 use crate::windows;
 
 pub fn create_header() -> Element<'static, Message> {
-    text("Tencent ACE Tools").size(24).into()
+    text("Tencent ACE Tools")
+        .size(24)
+        .font(get_header_font())
+        .into()
 }
 
 pub fn create_description() -> Element<'static, Message> {
-    text(env!("CARGO_PKG_DESCRIPTION")).size(14).into()
+    text(env!("CARGO_PKG_DESCRIPTION"))
+        .size(14)
+        .into()
 }
 
 pub fn create_admin_status(is_admin: bool) -> Element<'static, Message> {
     if is_admin {
-        text("Running with administrator privileges").color(COLOR_GREEN).into()
+        text("Running with administrator privileges")
+            .color(COLOR_GREEN)
+            .into()
     } else {
-        text("Administrator privileges required").color(COLOR_RED).into()
+        text("Administrator privileges required")
+            .color(COLOR_RED)
+            .into()
     }
 }
 
@@ -68,7 +78,9 @@ pub fn create_screenshot_section(screenshot_data: &Option<ScreenshotData>) -> El
         .width(Length::Fill)
         .into()
     } else {
-        container(text("No screenshot available").size(14).color(COLOR_BLUE))
+        container(text("No screenshot available")
+            .size(14)
+            .color(COLOR_BLUE))
             .padding(10)
             .width(Length::Fill)
             .into()
@@ -96,7 +108,7 @@ pub fn create_logs_section(logs: &Arc<Mutex<Vec<LogEvent>>>) -> Element<'_, Mess
                     entry.message
                 ))
                 .size(12)
-                .font(iced::Font::with_name("monospace"))
+                .font(get_monospace_font())
                 .color(color)
             })
             .fold(column![], |col, log_text| col.push(log_text))
@@ -152,7 +164,7 @@ pub fn create_process_status_section(process_info: &Arc<Mutex<Vec<windows::Proce
 
                     text(status_text)
                         .size(12)
-                        .font(iced::Font::with_name("monospace"))
+                        .font(get_monospace_font())
                         .color(if process.priority_modified || process.affinity_modified {
                             COLOR_GREEN
                         } else {
@@ -163,7 +175,8 @@ pub fn create_process_status_section(process_info: &Arc<Mutex<Vec<windows::Proce
                 .collect();
 
             column![
-                text("ACE Guard Process Status:").size(16),
+                text("ACE Guard Process Status:")
+                    .size(16),
                 Space::with_height(Length::Fixed(5.0)),
                 column(process_views).spacing(2)
             ]

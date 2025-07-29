@@ -7,6 +7,7 @@ use std::sync::{Arc, Mutex};
 use crate::logging::{GuiLogLayer, init_logging};
 use crate::messages::{LogEvent, Message, ScreenshotData};
 use crate::ui::components::*;
+use crate::ui::theme::{create_custom_theme, SEGOE_UI};
 
 #[cfg(target_os = "windows")]
 use crate::windows;
@@ -132,13 +133,15 @@ impl AceToolsApp {
             Space::with_height(Length::Fixed(20.0)),
             buttons_row,
             Space::with_height(Length::Fixed(15.0)),
-            iced::widget::text("Screenshot:").size(16),
+            iced::widget::text("Screenshot:")
+                .size(16),
             Space::with_height(Length::Fixed(5.0)),
             screenshot_section,
             Space::with_height(Length::Fixed(20.0)),
             process_status_section,
             Space::with_height(Length::Fixed(15.0)),
-            iced::widget::text("Logs:").size(16),
+            iced::widget::text("Logs:")
+                .size(16),
             Space::with_height(Length::Fixed(5.0)),
             logs_section,
             Space::with_height(Length::Fixed(15.0)),
@@ -156,7 +159,7 @@ impl AceToolsApp {
     }
 
     pub fn theme(&self) -> Theme {
-        Theme::Dark
+        create_custom_theme()
     }
 }
 
@@ -282,6 +285,7 @@ pub fn run_gui_mode() -> iced::Result {
 
     iced::application(AceToolsApp::title, AceToolsApp::update, AceToolsApp::view)
         .theme(AceToolsApp::theme)
+        .default_font(SEGOE_UI)
         .window_size((800.0, 600.0))
         .run_with(move || (app, Task::none()))
 }

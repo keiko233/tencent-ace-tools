@@ -17,7 +17,7 @@ tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter", "registry", "json"] }
 console = "0.15"
 atty = "0.2"
-iced = { version = "0.13", features = ["tokio", "image"] }
+iced = { version = "0.13", features = ["tokio", "image", "advanced"] }
 chrono = "0.4"
 num_cpus = "1.0"
 
