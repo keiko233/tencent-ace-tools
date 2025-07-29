@@ -9,6 +9,8 @@ use crate::constants;
 mod utils;
 use utils::*;
 
+pub mod screen;
+
 // Re-export the function for public access
 pub use utils::is_running_as_admin;
 
