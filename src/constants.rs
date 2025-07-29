@@ -5,6 +5,9 @@ use iced::Color;
 // pub const ACE_GUARD_64_SUBPATH: &str = "SGuard\\x64";
 pub const ACE_GUARD_64_PROCESS_NAME: &str = "SGuard64.exe";
 
+pub const DELTA_FORCE_PROCESS_NAME: &str = "DeltaForceClient-Win64-Shipping.exe";
+pub const DELTA_FORCE_WINDOW_NAMES: &[&str] = &["Delta Force", "三角洲行动"];
+
 // Color constants
 pub const COLOR_RED: Color = Color {
     r: 1.0,
