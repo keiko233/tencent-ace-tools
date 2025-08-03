@@ -1,0 +1,53 @@
+[package]
+name = "tencent-ace-tools"
+version = "0.1.0"
+description = "A Tauri App"
+authors = ["keiko233 <i@elaina.moe>"]
+edition = "2021"
+
+[lib]
+name = "tencent_ace_tools_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri-specta = { version = "=2.0.0-rc.21", features = [
+    "derive",
+    "javascript",
+    "typescript",
+] }
+specta = { version = "=2.0.0-rc.22", features = [
+    "serde",
+    "serde_json",
+    "chrono",
+    "time",
+    "uuid",
+] }
+specta-typescript = "0.0.9"
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.19", features = ["env-filter", "registry", "json"] }
+chrono = { version = "0.4.41", features = ["serde"] }
+num_cpus = "1.17.0"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.61.3", features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_System_Threading",
+    "Win32_UI_Shell",
+    "Win32_System_Diagnostics_Debug",
+    "Win32_System_WindowsProgramming",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_System_ProcessStatus",
+    "Win32_System_Diagnostics_ToolHelp",
+    "Win32_Graphics_Gdi",
+    "Win32_Graphics_Dwm",
+    "Win32_Storage_FileSystem",
+    "Win32_UI_HiDpi",
+] }

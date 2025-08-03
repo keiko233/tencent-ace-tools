@@ -1,0 +1,33 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+
+[*.ts]
+indent_size = 2
+
+[*.mts]
+indent_size = 2
+
+[*.tsx]
+indent_size = 2
+
+[*.js]
+indent_size = 2
+
+[*.mjs]
+indent_size = 2
+
+[*.jsx]
+indent_size = 2
+
+[*.cjs]
+indent_size = 2
+
+[*.rs]
+indent_size = 4
+
+[*.py]
+indent_size = 4

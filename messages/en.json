@@ -1,0 +1,20 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "language": "English",
+  "checking_for_running_status": "Checking...",
+  "running_as_admin": "Running as Admin",
+  "not_running_as_admin": "Not running as Admin",
+  "game_name_delta_force": "Delta Force",
+  "navigation_game_tools": "Game Tools",
+  "navigation_game_tools_optimization": "Optimization",
+  "navigation_developer_tools": "Developer Tools",
+  "navigation_developer_tools_debug": "Debug",
+  "game_tools_ace_process_controller_title": "Ace Process Controller",
+  "game_tools_ace_process_controller_description": "Manage and monitor Ace processes",
+  "game_tools_ace_process_controller_refresh": "Refresh",
+  "game_tools_ace_process_controller_try_optimize": "Try to optimize",
+  "game_tools_ace_process_controller_no_processes": "No processes found, try running the game and then optimize.",
+  "game_tools_ace_process_controller_try_optimize_again": "Rescan for optimization",
+  "game_tools_ace_process_controller_optimize_success": "Optimization successful",
+  "game_tools_ace_process_controller_optimize_failed": "Optimization failed"
+}

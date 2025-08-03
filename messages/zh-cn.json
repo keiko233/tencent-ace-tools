@@ -1,0 +1,20 @@
+{
+  "$schema": "https://inlang.com/schema/inlang-message-format",
+  "language": "简体中文",
+  "checking_for_running_status": "正在检查运行状态...",
+  "running_as_admin": "以管理员身份运行",
+  "not_running_as_admin": "未以管理员身份运行",
+  "game_name_delta_force": "三角洲行动",
+  "navigation_game_tools": "游戏工具",
+  "navigation_game_tools_optimization": "优化",
+  "navigation_developer_tools": "开发者工具",
+  "navigation_developer_tools_debug": "调试",
+  "game_tools_ace_process_controller_title": "ACE 进程控制器",
+  "game_tools_ace_process_controller_description": "管理和监控 ACE 进程",
+  "game_tools_ace_process_controller_refresh": "刷新",
+  "game_tools_ace_process_controller_try_optimize": "尝试优化",
+  "game_tools_ace_process_controller_no_processes": "未找到任何进程，尝试运行游戏后优化。",
+  "game_tools_ace_process_controller_try_optimize_again": "重新扫描优化",
+  "game_tools_ace_process_controller_optimize_success": "进程优化成功",
+  "game_tools_ace_process_controller_optimize_failed": "进程优化失败"
+}
