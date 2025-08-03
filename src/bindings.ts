@@ -59,6 +59,29 @@ export const commands = {
       else return { status: "error", error: e as any };
     }
   },
+  async getAllWindows(): Promise<Result<WindowInfo[], string>> {
+    try {
+      return { status: "ok", data: await TAURI_INVOKE("get_all_windows") };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: "error", error: e as any };
+    }
+  },
+  async tryCaptureImageByWindowId(
+    windowId: number,
+  ): Promise<Result<ScreenShot, string>> {
+    try {
+      return {
+        status: "ok",
+        data: await TAURI_INVOKE("try_capture_image_by_window_id", {
+          windowId,
+        }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: "error", error: e as any };
+    }
+  },
 };
 
 /** user-defined events **/
@@ -90,6 +113,13 @@ export type ProcessInfo = {
   current_priority: string;
   current_affinity: string;
 };
+export type ScreenShot = {
+  image_base64: string;
+  width: number;
+  height: number;
+  format: string;
+};
+export type WindowInfo = { title: string; process_id: number };
 
 type __EventObj__<T> = {
   listen: (

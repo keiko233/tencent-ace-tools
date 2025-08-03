@@ -1,4 +1,8 @@
-use crate::windows::{ace_tools::ProcessInfo, AceProcessControllerState};
+use crate::windows::{
+    ace_tools::ProcessInfo,
+    screenshot::{ScreenShot, ScreenshotCapture, WindowInfo},
+    AceProcessControllerState,
+};
 use tauri::State;
 
 #[tauri::command]
@@ -82,4 +86,16 @@ pub fn get_controller_privileges_status(
         .map_err(|e| format!("Failed to acquire controller lock: {}", e))?;
 
     Ok(controller.get_privileges_enabled())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn get_all_windows() -> Result<Vec<WindowInfo>, String> {
+    ScreenshotCapture::get_all_windows()
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn try_capture_image_by_window_id(window_id: u32) -> Result<ScreenShot, String> {
+    ScreenshotCapture::capture_by_window_id(window_id)
 }

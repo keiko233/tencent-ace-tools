@@ -25,7 +25,9 @@ pub fn app_run() {
             is_running_as_admin,
             optimize_ace_guard_processes,
             get_ace_guard_processes,
-            get_controller_privileges_status
+            get_controller_privileges_status,
+            get_all_windows,
+            try_capture_image_by_window_id,
         ])
         .events(collect_events![LogEvent,]);
 
