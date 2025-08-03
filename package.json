@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tauri dev",
     "build": "tauri build",
+    "generate:message": "paraglide-js compile --project ./project.inlang --outdir ./src\\paraglide",
     "ui:dev": "vite",
     "ui:build": "tsc && vite build",
     "ui:preview": "vite preview",
@@ -15,7 +16,7 @@
     "fix": "run-s fix:*",
     "fix:eslint": "eslint ./src --fix",
     "fix:prettier": "prettier --write ./src",
-    "postinstall": "husky"
+    "postinstall": "husky && pnpm generate:message"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.10",
