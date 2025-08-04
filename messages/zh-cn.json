@@ -16,5 +16,6 @@
   "game_tools_ace_process_controller_no_processes": "未找到任何进程，尝试运行游戏后优化。",
   "game_tools_ace_process_controller_try_optimize_again": "重新扫描优化",
   "game_tools_ace_process_controller_optimize_success": "进程优化成功",
-  "game_tools_ace_process_controller_optimize_failed": "进程优化失败"
+  "game_tools_ace_process_controller_optimize_failed": "进程优化失败",
+  "game_tools_ace_process_controller_optimize_no_exec": "未执行任何优化"
 }

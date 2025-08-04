@@ -16,5 +16,6 @@
   "game_tools_ace_process_controller_no_processes": "No processes found, try running the game and then optimize.",
   "game_tools_ace_process_controller_try_optimize_again": "Rescan for optimization",
   "game_tools_ace_process_controller_optimize_success": "Optimization successful",
-  "game_tools_ace_process_controller_optimize_failed": "Optimization failed"
+  "game_tools_ace_process_controller_optimize_failed": "Optimization failed",
+  "game_tools_ace_process_controller_optimize_no_exec": "No optimization executed"
 }

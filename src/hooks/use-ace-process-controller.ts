@@ -11,7 +11,7 @@ export function useAceProcessController() {
   const guard = useQuery({
     queryKey: [ACE_PROCESS_CONTROLLER_QUERY_KEY],
     queryFn: async () => {
-      return unwrapResult(await commands.getAceGuardProcesses());
+      return unwrapResult(await commands.getAllAceGuardProcesses());
     },
   });
 
@@ -23,7 +23,7 @@ export function useAceProcessController() {
   });
 
   const tryOptimizeProcesses = useCallback(async () => {
-    const result = unwrapResult(await commands.optimizeAceGuardProcesses());
+    const result = unwrapResult(await commands.optimizeAllAceGuardProcesses());
 
     await guard.refetch();
 

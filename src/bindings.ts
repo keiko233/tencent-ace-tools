@@ -26,22 +26,22 @@ export const commands = {
       else return { status: "error", error: e as any };
     }
   },
-  async optimizeAceGuardProcesses(): Promise<Result<string, string>> {
+  async getAllAceGuardProcesses(): Promise<Result<ProcessInfo[], string>> {
     try {
       return {
         status: "ok",
-        data: await TAURI_INVOKE("optimize_ace_guard_processes"),
+        data: await TAURI_INVOKE("get_all_ace_guard_processes"),
       };
     } catch (e) {
       if (e instanceof Error) throw e;
       else return { status: "error", error: e as any };
     }
   },
-  async getAceGuardProcesses(): Promise<Result<ProcessInfo[], string>> {
+  async optimizeAllAceGuardProcesses(): Promise<Result<string, string>> {
     try {
       return {
         status: "ok",
-        data: await TAURI_INVOKE("get_ace_guard_processes"),
+        data: await TAURI_INVOKE("optimize_all_ace_guard_processes"),
       };
     } catch (e) {
       if (e instanceof Error) throw e;
@@ -112,6 +112,7 @@ export type ProcessInfo = {
   affinity_modified: boolean;
   current_priority: string;
   current_affinity: string;
+  is_optimized: boolean;
 };
 export type ScreenShot = {
   image_base64: string;

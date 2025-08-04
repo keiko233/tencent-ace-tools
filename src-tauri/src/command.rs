@@ -34,11 +34,24 @@ pub fn is_running_as_admin() -> Result<bool, String> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn optimize_ace_guard_processes(
+pub fn get_all_ace_guard_processes(
+    state: State<'_, AceProcessControllerState>,
+) -> Result<Vec<ProcessInfo>, String> {
+    let mut guard = state
+        .0
+        .lock()
+        .map_err(|e| format!("Failed to acquire controller lock: {}", e))?;
+
+    let result = guard.scan_ace_guard_processes();
+    
+    result
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn optimize_all_ace_guard_processes(
     state: State<'_, AceProcessControllerState>,
 ) -> Result<String, String> {
-    tracing::info!("Starting ACE Guard process optimization...");
-
     // Clone the controller to avoid holding the lock across await
     let mut controller = {
         let guard = state
@@ -49,30 +62,18 @@ pub async fn optimize_ace_guard_processes(
     };
 
     let result = controller.optimize_ace_guard_processes().await;
-
-    // Update the state with the modified controller
+    
+    // Update the global state with the modified controller
     {
         let mut guard = state
             .0
             .lock()
-            .map_err(|e| format!("Failed to acquire controller lock for update: {}", e))?;
+            .map_err(|e| format!("Failed to acquire controller lock: {}", e))?;
         *guard = controller;
     }
-
+    
+    tracing::debug!("Optimization result: {:?}", result);
     result
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn get_ace_guard_processes(
-    state: State<'_, AceProcessControllerState>,
-) -> Result<Vec<ProcessInfo>, String> {
-    let controller = state
-        .0
-        .lock()
-        .map_err(|e| format!("Failed to acquire controller lock: {}", e))?;
-
-    Ok(controller.get_processes().to_vec())
 }
 
 #[tauri::command]

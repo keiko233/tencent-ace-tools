@@ -26,6 +26,7 @@ pub struct ProcessInfo {
     pub affinity_modified: bool,
     pub current_priority: String,
     pub current_affinity: String,
+    pub is_optimized: bool,
 }
 
 #[derive(Clone)]
@@ -45,12 +46,21 @@ impl AceProcessController {
         }
     }
 
-    pub async fn optimize_ace_guard_processes(&mut self) -> std::result::Result<String, String> {
+    pub fn scan_ace_guard_processes(&mut self) -> Result<Vec<ProcessInfo>, String> {
         self.scan_processes()
             .map_err(|e| format!("Failed to scan processes: {}", e))?;
 
         if self.processes.is_empty() {
             return Err("No ACE Guard processes found on the system.".to_string());
+        }
+
+        tracing::info!("Found {} ACE Guard processes", self.processes.len());
+        Ok(self.processes.clone())
+    }
+
+    pub async fn optimize_all_processes(&mut self) -> Result<String, String> {
+        if self.processes.is_empty() {
+            return Err("No processes to optimize. Please scan processes first.".to_string());
         }
 
         let mut modified_count = 0;
@@ -63,7 +73,7 @@ impl AceProcessController {
         }
 
         let result = format!(
-            "Process scan completed: Found {} processes, Modified {} processes",
+            "Process optimization completed: Found {} processes, Modified {} processes",
             processes_len, modified_count
         );
 
@@ -78,7 +88,44 @@ impl AceProcessController {
         Ok(result)
     }
 
+    pub async fn optimize_single_process(&mut self, process_id: u32) -> Result<String, String> {
+        let process_index = self
+            .processes
+            .iter()
+            .position(|p| p.process_id == process_id)
+            .ok_or_else(|| {
+                format!(
+                    "Process with PID {} not found in scanned processes",
+                    process_id
+                )
+            })?;
+
+        if self.optimize_process_at_index(process_index).await {
+            Ok(format!(
+                "Process {} (PID: {}) optimized successfully",
+                self.processes[process_index].process_name, process_id
+            ))
+        } else {
+            Err(format!(
+                "Failed to optimize process {} (PID: {})",
+                self.processes[process_index].process_name, process_id
+            ))
+        }
+    }
+
+    pub async fn optimize_ace_guard_processes(&mut self) -> std::result::Result<String, String> {
+        self.scan_ace_guard_processes()?;
+        self.optimize_all_processes().await
+    }
+
     fn scan_processes(&mut self) -> Result<(), String> {
+        // get the previous optimization states
+        let previous_optimized_states: std::collections::HashMap<u32, bool> = self
+            .processes
+            .iter()
+            .map(|p| (p.process_id, p.is_optimized))
+            .collect();
+
         self.processes.clear();
 
         unsafe {
@@ -112,6 +159,12 @@ impl AceProcessController {
                                 ("Access Denied".to_string(), "Access Denied".to_string())
                             });
 
+                        // 检查是否之前已优化过此进程
+                        let is_optimized = previous_optimized_states
+                            .get(&process_entry.th32ProcessID)
+                            .copied()
+                            .unwrap_or(false);
+
                         self.processes.push(ProcessInfo {
                             process_id: process_entry.th32ProcessID,
                             process_name: process_name.to_string(),
@@ -120,6 +173,7 @@ impl AceProcessController {
                             affinity_modified: false,
                             current_priority,
                             current_affinity,
+                            is_optimized,
                         });
                     }
 
@@ -201,8 +255,10 @@ impl AceProcessController {
                     }
 
                     if operation_success {
+                        process.is_optimized = true;
                         tracing::info!("Process optimization completed");
                     } else {
+                        process.is_optimized = false;
                         tracing::warn!("No operations succeeded for this process");
                     }
 
@@ -220,5 +276,24 @@ impl AceProcessController {
 
     pub fn get_privileges_enabled(&self) -> bool {
         self.privileges_enabled
+    }
+
+    pub fn get_process_count(&self) -> usize {
+        self.processes.len()
+    }
+
+    pub fn get_optimized_count(&self) -> usize {
+        self.processes
+            .iter()
+            .filter(|p| p.is_optimized)
+            .count()
+    }
+
+    pub fn clear_processes(&mut self) {
+        self.processes.clear();
+    }
+
+    pub fn has_processes(&self) -> bool {
+        !self.processes.is_empty()
     }
 }

@@ -4,6 +4,7 @@ import AppFooter, { LoggerViewerButton } from "@/components/app-footer";
 import AppHeader from "@/components/app-header";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { Toaster } from "@/components/ui/sonner";
 
 export const Route = createRootRoute({
   component: RootComponent,
@@ -29,8 +30,12 @@ const Layout = ({ children }: PropsWithChildren) => {
 
 function RootComponent() {
   return (
-    <Layout>
-      <Outlet />
-    </Layout>
+    <>
+      <Toaster position="top-center" richColors />
+
+      <Layout>
+        <Outlet />
+      </Layout>
+    </>
   );
 }
