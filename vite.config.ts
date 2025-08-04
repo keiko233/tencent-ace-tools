@@ -55,6 +55,14 @@ export default defineConfig(async () => ({
             const name = id.split("pages/")[1].split("/")[0].split(".")[0];
             return `page-${name}`;
           }
+
+          if (id.includes("components/")) {
+            const parts = id.split("components/");
+            if (parts.length > 1) {
+              const name = parts[1].split("/")[0];
+              return `component-${name.toLowerCase()}`;
+            }
+          }
         },
       },
     },
