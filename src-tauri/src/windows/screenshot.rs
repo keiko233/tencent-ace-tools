@@ -111,53 +111,11 @@ impl ScreenshotCapture {
 
     /// Encode screenshot buffer to base64
     fn encode_buffer_to_base64(buf: RgbBuf) -> Result<ScreenShot, String> {
-        // Convert RGB buffer to RGBA
         let width = buf.width;
         let height = buf.height;
-        let mut rgba_pixels = Vec::with_capacity((width * height * 4) as usize);
         
-        // win-screenshot returns pixels in BGRA format (4 bytes per pixel)
-        // Convert BGRA to RGBA by swapping B and R channels
-        for pixel in buf.pixels.chunks_exact(4) {
-            if pixel.len() >= 4 {
-                rgba_pixels.push(pixel[2]); // R (was B)
-                rgba_pixels.push(pixel[1]); // G
-                rgba_pixels.push(pixel[0]); // B (was R)
-                rgba_pixels.push(pixel[3]); // A
-            }
-        }
-        
-        // Handle any remaining pixels if the buffer length is not divisible by 4
-        let remaining = buf.pixels.len() % 4;
-        if remaining > 0 {
-            let start = buf.pixels.len() - remaining;
-            let remaining_pixels = &buf.pixels[start..];
-            
-            // Pad incomplete pixels with default values
-            match remaining {
-                1 => {
-                    rgba_pixels.push(remaining_pixels[0]); // R
-                    rgba_pixels.push(0);                   // G
-                    rgba_pixels.push(0);                   // B
-                    rgba_pixels.push(255);                 // A
-                }
-                2 => {
-                    rgba_pixels.push(remaining_pixels[1]); // R
-                    rgba_pixels.push(remaining_pixels[0]); // G
-                    rgba_pixels.push(0);                   // B
-                    rgba_pixels.push(255);                 // A
-                }
-                3 => {
-                    rgba_pixels.push(remaining_pixels[2]); // R
-                    rgba_pixels.push(remaining_pixels[1]); // G
-                    rgba_pixels.push(remaining_pixels[0]); // B
-                    rgba_pixels.push(255);                 // A
-                }
-                _ => {}
-            }
-        }
-        
-        let rgba_image = RgbaImage::from_raw(width, height, rgba_pixels)
+        // Use the original pixels directly without color channel conversion
+        let rgba_image = RgbaImage::from_raw(width, height, buf.pixels)
             .ok_or_else(|| "Failed to create RGBA image from buffer".to_string())?;
 
         let dynamic_image = image::DynamicImage::ImageRgba8(rgba_image);
