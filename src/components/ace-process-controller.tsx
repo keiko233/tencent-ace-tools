@@ -47,7 +47,7 @@ export default function AceProcessController() {
       </CardHeader>
 
       <CardContent>
-        {guard.isLoading ? (
+        {guard.isLoading || guard.isFetching ? (
           <div className="flex items-center gap-2">
             <Loader2 className="size-4 animate-spin" />
             <span>Loading processes...</span>
