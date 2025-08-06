@@ -17,5 +17,7 @@
   "game_tools_ace_process_controller_try_optimize_again": "Rescan for optimization",
   "game_tools_ace_process_controller_optimize_success": "Optimization successful",
   "game_tools_ace_process_controller_optimize_failed": "Optimization failed",
-  "game_tools_ace_process_controller_optimize_no_exec": "No optimization executed"
+  "game_tools_ace_process_controller_optimize_no_exec": "No optimization executed",
+  "running_as_admin_description": "Currently running as Admin, allowing for advanced operations. Note that some features may require admin privileges to function properly.",
+  "not_running_as_admin_description": "Currently not running as Admin, some features may not function properly. It is recommended to restart the application as Admin."
 }
