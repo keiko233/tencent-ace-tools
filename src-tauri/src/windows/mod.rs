@@ -4,6 +4,7 @@ use std::sync::Mutex;
 pub mod ace_tools;
 pub mod utils;
 pub mod screenshot;
+pub mod ocr;
 
 // State wrapper for AceProcessController
 pub struct AceProcessControllerState(pub Mutex<AceProcessController>);

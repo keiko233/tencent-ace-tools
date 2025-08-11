@@ -1,4 +1,3 @@
-use base64::Engine;
 use image::RgbaImage;
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -7,7 +6,7 @@ use win_screenshot::prelude::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct ScreenShot {
-    pub image_base64: String,
+    pub image_data: Vec<u8>,
     pub width: u32,
     pub height: u32,
     pub format: String,
@@ -44,7 +43,7 @@ impl ScreenshotCapture {
         let buf = capture_display()
             .map_err(|e| format!("Failed to capture display: {:?}", e))?;
         
-        Self::encode_buffer_to_base64(buf)
+        Self::encode_buffer_to_png(buf)
     }
 
     /// Capture window by process ID (hwnd)
@@ -52,7 +51,7 @@ impl ScreenshotCapture {
         let buf = capture_window(window_id as isize)
             .map_err(|e| format!("Failed to capture window {}: {:?}", window_id, e))?;
         
-        Self::encode_buffer_to_base64(buf)
+        Self::encode_buffer_to_png(buf)
     }
 
     /// Find and capture window by name (exact match)
@@ -63,7 +62,7 @@ impl ScreenshotCapture {
         let buf = capture_window(hwnd)
             .map_err(|e| format!("Failed to capture window '{}': {:?}", window_name, e))?;
         
-        Self::encode_buffer_to_base64(buf)
+        Self::encode_buffer_to_png(buf)
     }
 
     /// Find and capture window by regex pattern
@@ -84,7 +83,7 @@ impl ScreenshotCapture {
         let buf = capture_window(window.hwnd)
             .map_err(|e| format!("Failed to capture window matching '{}': {:?}", pattern, e))?;
         
-        Self::encode_buffer_to_base64(buf)
+        Self::encode_buffer_to_png(buf)
     }
 
     /// Advanced window capture with fine-tuning options
@@ -106,11 +105,11 @@ impl ScreenshotCapture {
             crop_wh,
         ).map_err(|e| format!("Failed to capture window with advanced options: {:?}", e))?;
         
-        Self::encode_buffer_to_base64(buf)
+        Self::encode_buffer_to_png(buf)
     }
 
-    /// Encode screenshot buffer to base64
-    fn encode_buffer_to_base64(buf: RgbBuf) -> Result<ScreenShot, String> {
+    /// Encode screenshot buffer to PNG binary data
+    fn encode_buffer_to_png(buf: RgbBuf) -> Result<ScreenShot, String> {
         let width = buf.width;
         let height = buf.height;
         
@@ -126,11 +125,8 @@ impl ScreenshotCapture {
             .write_to(&mut Cursor::new(&mut png_bytes), image::ImageFormat::Png)
             .map_err(|e| format!("Failed to encode image as PNG: {}", e))?;
 
-        // Convert to base64
-        let image_base64 = base64::engine::general_purpose::STANDARD.encode(&png_bytes);
-
         Ok(ScreenShot {
-            image_base64,
+            image_data: png_bytes,
             width,
             height,
             format: "png".to_string(),
@@ -149,11 +145,11 @@ impl ScreenshotCapture {
             data.extend_from_slice(&[255, 0, 0, 255]); // Red with full alpha
         }
         
-        Self::encode_data_to_base64(&data, width, height)
+        Self::encode_data_to_png(&data, width, height)
     }
 
-    /// Encode raw data to base64
-    fn encode_data_to_base64(data: &[u8], width: u32, height: u32) -> Result<ScreenShot, String> {
+    /// Encode raw data to PNG binary data
+    fn encode_data_to_png(data: &[u8], width: u32, height: u32) -> Result<ScreenShot, String> {
         let rgba_image = image::ImageBuffer::from_raw(width, height, data.to_vec())
             .ok_or_else(|| "Failed to create image from buffer".to_string())?;
 
@@ -165,11 +161,8 @@ impl ScreenshotCapture {
             .write_to(&mut Cursor::new(&mut png_bytes), image::ImageFormat::Png)
             .map_err(|e| format!("Failed to encode image as PNG: {}", e))?;
 
-        // Convert to base64
-        let image_base64 = base64::engine::general_purpose::STANDARD.encode(&png_bytes);
-
         Ok(ScreenShot {
-            image_base64,
+            image_data: png_bytes,
             width,
             height,
             format: "png".to_string(),
@@ -203,7 +196,7 @@ mod tests {
         assert!(screenshot.width > 0);
         assert!(screenshot.height > 0);
         assert_eq!(screenshot.format, "png");
-        assert!(!screenshot.image_base64.is_empty());
+        assert!(!screenshot.image_data.is_empty());
         println!("Display screenshot captured: {}x{} {}", 
                 screenshot.width, screenshot.height, screenshot.format);
     }
@@ -217,7 +210,7 @@ mod tests {
         assert_eq!(screenshot.width, 100);
         assert_eq!(screenshot.height, 100);
         assert_eq!(screenshot.format, "png");
-        assert!(!screenshot.image_base64.is_empty());
+        assert!(!screenshot.image_data.is_empty());
         println!("Demo screenshot created successfully: {}x{} {}", 
                 screenshot.width, screenshot.height, screenshot.format);
     }

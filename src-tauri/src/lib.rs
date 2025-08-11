@@ -28,6 +28,9 @@ pub fn app_run() {
             get_controller_privileges_status,
             get_all_windows,
             try_capture_image_by_window_id,
+            ocr_screen_region,
+            ocr_image_region,
+            ocr_full_screen,
         ])
         .events(collect_events![LogEvent,]);
 
@@ -51,6 +54,8 @@ pub fn app_run() {
         .expect("Failed to export typescript bindings");
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_dialog::init())
         .manage(windows::AceProcessControllerState::default())
         .invoke_handler(command_builder.invoke_handler())
         .setup(move |app| {

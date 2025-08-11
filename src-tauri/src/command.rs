@@ -1,6 +1,7 @@
 use crate::windows::{
     ace_tools::ProcessInfo,
     screenshot::{ScreenShot, ScreenshotCapture, WindowInfo},
+    ocr::{OcrResponse, OcrRegion},
     AceProcessControllerState,
 };
 use tauri::State;
@@ -99,4 +100,22 @@ pub fn get_all_windows() -> Result<Vec<WindowInfo>, String> {
 #[specta::specta]
 pub fn try_capture_image_by_window_id(window_id: u32) -> Result<ScreenShot, String> {
     ScreenshotCapture::capture_by_window_id(window_id)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn ocr_screen_region(region: OcrRegion) -> Result<OcrResponse, String> {
+    crate::windows::ocr::ocr_screen_region(region)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn ocr_image_region(image_data: Vec<u8>, region: OcrRegion) -> Result<OcrResponse, String> {
+    crate::windows::ocr::ocr_image_region(&image_data, region)
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn ocr_full_screen() -> Result<OcrResponse, String> {
+    crate::windows::ocr::ocr_full_screen()
 }

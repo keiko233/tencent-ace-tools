@@ -82,6 +82,41 @@ export const commands = {
       else return { status: "error", error: e as any };
     }
   },
+  async ocrScreenRegion(
+    region: OcrRegion,
+  ): Promise<Result<OcrResponse, string>> {
+    try {
+      return {
+        status: "ok",
+        data: await TAURI_INVOKE("ocr_screen_region", { region }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: "error", error: e as any };
+    }
+  },
+  async ocrImageRegion(
+    imageData: number[],
+    region: OcrRegion,
+  ): Promise<Result<OcrResponse, string>> {
+    try {
+      return {
+        status: "ok",
+        data: await TAURI_INVOKE("ocr_image_region", { imageData, region }),
+      };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: "error", error: e as any };
+    }
+  },
+  async ocrFullScreen(): Promise<Result<OcrResponse, string>> {
+    try {
+      return { status: "ok", data: await TAURI_INVOKE("ocr_full_screen") };
+    } catch (e) {
+      if (e instanceof Error) throw e;
+      else return { status: "error", error: e as any };
+    }
+  },
 };
 
 /** user-defined events **/
@@ -104,6 +139,13 @@ export type LogEvent = {
   fields: Partial<{ [key in string]: string }>;
 };
 export type LogLevel = "TRACE" | "DEBUG" | "INFO" | "WARN" | "ERROR";
+export type OcrRegion = { x: number; y: number; width: number; height: number };
+export type OcrResponse = {
+  results: OcrResult[];
+  full_text: string;
+  success: boolean;
+};
+export type OcrResult = { text: string; confidence: number; region: OcrRegion };
 export type ProcessInfo = {
   process_id: number;
   process_name: string;
@@ -115,7 +157,7 @@ export type ProcessInfo = {
   is_optimized: boolean;
 };
 export type ScreenShot = {
-  image_base64: string;
+  image_data: number[];
   width: number;
   height: number;
   format: string;
